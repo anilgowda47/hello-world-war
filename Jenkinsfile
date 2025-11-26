@@ -1,5 +1,6 @@
 pipeline {
             agent any
+            stages {
 stage('update and install') {
             steps {
 sh "sudo apt update"
