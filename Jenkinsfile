@@ -18,7 +18,7 @@ pipeline {
          stage('Build - deploy') {
             steps {
                 sh "mvn clean package"
-            
+            sh "sudo cp /var/lib/jenkins/workspace/JenkinsFile@2/target/hello-world-war-1.0.2.war /opt/apache-tomcat-10.1.49/webapps"
             }
         }
     
