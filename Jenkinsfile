@@ -27,5 +27,3 @@ agent none
         }
     }
 }
-
-
