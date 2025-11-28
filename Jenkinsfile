@@ -4,7 +4,7 @@ agent none
     stages {
         stage('hello world war') {
             parallel {
-                stages('checkout') {
+                stage('checkout') {
                     agent { label 'java' }
                     steps {
                         sh "rm -rf hello-world-war"
