@@ -1,25 +1,25 @@
 pipeline {
-    agent any
-
+    agent {
+        docker {
+            image 'docker:latest'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
+        }
+    }
+          
     environment {
         IMAGE_NAME   = "anil/hello-world-war"
         IMAGE_TAG    = "${BUILD_NUMBER}"
         DOCKER_CREDS = "dockerhub-creds"
         CONTAINER_NAME = "hello-world-war-doc-cntr"
+        HOME = "${WORKSPACE}"
     }
 
     stages {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'master',
-                url: 'https://github.com/anilgowda47/hello-world-war.git'
-            }
-        }
-
-        stage('Build WAR File') {
-            steps {
-                sh 'mvn clean package'
+                git branch: 'main',
+                    url: 'https://github.com/anilgowda47/hello-world-war.git'
             }
         }
 
@@ -29,10 +29,10 @@ pipeline {
             }
         }
 
-        stage('Login to DockerHub') {
+        stage('Login to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: "${DOCKER_CREDS}",
+                    credentialsId: DOCKER_CREDS,
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
@@ -41,33 +41,26 @@ pipeline {
             }
         }
 
-        stage('Push Image to DockerHub') {
+        stage('Push Image to Docker Hub') {
             steps {
                 sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
 
-        stage('Deploy Container') {
+        stage('Deploy Application') {
             steps {
                 sh '''
-                docker stop ${CONTAINER_NAME} || true
-                docker rm ${CONTAINER_NAME} || true
+                    # Stop and remove existing container if it exists
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
 
-                docker run -d \
-                --name ${CONTAINER_NAME} \
-                -p 8088:8080 \
-                ${IMAGE_NAME}:${IMAGE_TAG}
+                    # Run container in detached mode
+                    docker run -d \
+                      --name ${CONTAINER_NAME} \
+                      -p 8088:8080 \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo "🎉 Deployment Successful!"
-        }
-        failure {
-            echo "❌ Pipeline Failed!"
         }
     }
 }
