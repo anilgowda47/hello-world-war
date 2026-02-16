@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "vinayak432/hello-world-war"
+        IMAGE_NAME = "anil/hello-world-war"
         IMAGE_TAG  = "${BUILD_NUMBER}"
         CONTAINER_NAME = "hello-world-war-doc-cntr"
     }
