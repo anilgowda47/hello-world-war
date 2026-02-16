@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME   = "anil/hello-world-war"
+        IMAGE_NAME = "anilgowda21/hello-world-war"
         IMAGE_TAG    = "${BUILD_NUMBER}"
         DOCKER_CREDS = "dockerhub-creds"
         CONTAINER_NAME = "hello-world-war-doc-cntr"
