@@ -19,7 +19,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/vinayak432/hello-world-war-dnd.git'
+                    url: 'https://github.com/anilgowda47/hello-world-war.git'
             }
         }
 
