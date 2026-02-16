@@ -1,44 +1,65 @@
 pipeline {
-    // agent { label 'java' }
-    agent none
-    parameters {
-        string(name: 'mcmd1', defaultValue: 'clean', description: 'maven clean command')
-        booleanParam(name: 'SAMPLE_BOOLEAN', defaultValue: true, description: 'A boolean parameter')
-        choice(name: 'mcmd2', choices: ['package', 'compile', 'install', 'validate'], description: 'Choose one option')
+    agent {
+        docker {
+            image 'docker:latest'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
+        }
     }
-    stages {
-        stage ('hello-world-war') {
-            parallel {
-                stage('Checkout') {
-                    agent { label 'java' }
-                    steps {
-                        withCredentials([
-                            usernamePassword(credentialsId: '7b5f13d2-07bd-4361-b9eb-61a78db4146d',
-                                usernameVariable: 'MY_USERNAME',
-                                passwordVariable: 'MY_PASSWORD'),
-                            sshUserPrivateKey(credentialsId: '5b90b9a6-bae4-44c9-b4e6-6498c4b154ff',
-                                keyFileVariable: 'KEY_FILE',
-                                usernameVariable: 'SSH_USER')
-                        ]) {
-                            sh "rm -rf hello-world-war"
-                            sh "git clone https://github.com/anilgowda47/hello-world-war"
-                        }
-                    }
-                }
+          
+    environment {
+        IMAGE_NAME   = "anil/hello-world-war"
+        IMAGE_TAG    = "${BUILD_NUMBER}"
+        DOCKER_CREDS = "dockerhub-creds"
+        CONTAINER_NAME = "hello-world-war-doc-cntr"
+        HOME = "${WORKSPACE}"
+    }
 
-                stage('Build') {
-                    agent { label 'java' }
-                    steps {
-                        sh "mvn $mcmd1 $mcmd2"
-                    }
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/vinayak432/hello-world-war-dnd.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: DOCKER_CREDS,
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                 }
             }
         }
 
-        stage('Deploy') {
-            agent { label 'java' }
+        stage('Push Image to Docker Hub') {
             steps {
-                sh "sudo cp /home/slave1/workspace/war_pipeline/target/hello-world-war-1.0.1.war /opt/apache-tomcat-10.1.49/webapps"
+                sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                sh '''
+                    # Stop and remove existing container if it exists
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+
+                    # Run container in detached mode
+                    docker run -d \
+                      --name ${CONTAINER_NAME} \
+                      -p 8088:8080 \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
             }
         }
     }
